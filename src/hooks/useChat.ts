@@ -44,18 +44,13 @@ export const useChat = () => {
       };
 
       const response = await apiService.sendMessage(request);
-      
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to send message');
-      }
-
-      return response.data;
+      return response;
     },
     onSuccess: (data) => {
       if (data) {
         // Update session ID if new
-        if (data.sessionId && data.sessionId !== sessionId) {
-          setSessionId(data.sessionId);
+        if (data.session_id && data.session_id !== sessionId) {
+          setSessionId(data.session_id);
         }
 
         // Add AI response
@@ -67,7 +62,8 @@ export const useChat = () => {
           type: 'text',
           metadata: {
             category: 'response',
-            important: data.contextSummary.relevantMemoriesCount > 0,
+            important: data.context_summary?.relevant_memories_count > 0,
+            responseTimeMs: data.response_time_ms,
           },
         };
 

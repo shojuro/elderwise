@@ -57,6 +57,8 @@ export const Layout: React.FC<LayoutProps> = ({
 
       {/* Main Content */}
       <motion.main
+        id="main-content"
+        tabIndex={-1}
         className={`
           ${fullHeight ? 'h-screen' : 'min-h-screen'}
           ${showNavigation ? 'pb-20' : ''}

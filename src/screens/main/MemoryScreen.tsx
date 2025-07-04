@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow, format } from 'date-fns';
 import { 
@@ -17,6 +17,9 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import { useQuery } from '@tanstack/react-query';
+import { apiService } from '../../services/api';
+import { useAppStore } from '../../store';
 
 // Mock data - replace with actual API calls
 const mockMemories = [
@@ -77,12 +80,26 @@ const categories = [
 ];
 
 export const MemoryScreen: React.FC = () => {
+  const { user } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Memories');
   const [expandedMemory, setExpandedMemory] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const filteredMemories = mockMemories.filter(memory => {
+  // Fetch memories from API
+  const { data: memoriesData, isLoading, error, refetch } = useQuery({
+    queryKey: ['memories', user?.id],
+    queryFn: async () => {
+      if (!user?.id) throw new Error('User not authenticated');
+      const response = await apiService.getRecentMemories(user.id, 50);
+      return response;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Use API data or fall back to mock data
+  const memories = memoriesData?.memories || mockMemories;
+
+  const filteredMemories = memories.filter((memory: any) => {
     const matchesSearch = memory.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          memory.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesCategory = selectedCategory === 'All Memories' || memory.category === selectedCategory;

@@ -9,6 +9,7 @@ import { Card } from '../../components/common/Card';
 import { AuthLayout } from '../../components/common/Layout';
 import { useAppStore } from '../../store';
 import { ContactForm } from '../../types';
+import { apiService } from '../../services/api';
 
 const SETUP_STEPS = [
   { id: 'personal', title: 'Tell us about yourself', subtitle: 'This helps ElderWise provide better support' },
@@ -82,12 +83,21 @@ export const SetupScreen: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Simulate API call - replace with actual API integration
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Generate a unique user ID
+      const userId = 'user_' + Date.now();
       
-      // Create user object
+      // Create user via API
+      await apiService.createUser({
+        user_id: userId,
+        name: data.name,
+        age: data.age || 70,
+        conditions: data.conditions || [],
+        interests: data.interests || []
+      });
+      
+      // Create user object for local state
       const user = {
-        id: 'user_' + Date.now(),
+        id: userId,
         name: data.name,
         age: data.age,
         conditions: data.conditions,

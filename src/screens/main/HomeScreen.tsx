@@ -12,7 +12,8 @@ import {
   Cloud,
   ChevronRight,
   Calendar,
-  Clock
+  Clock,
+  Camera
 } from 'lucide-react';
 import { ElderlyLayout } from '../../components/common/Layout';
 import { Card } from '../../components/common/Card';
@@ -47,6 +48,13 @@ export const HomeScreen: React.FC = () => {
       color: 'lavender',
       path: '/chat',
       primary: true
+    },
+    {
+      title: 'Identify Medication',
+      subtitle: 'Take a photo of your pill',
+      icon: Camera,
+      color: 'blue',
+      path: '/medication'
     },
     {
       title: 'Health Check',
@@ -173,6 +181,7 @@ export const HomeScreen: React.FC = () => {
                         ${action.color === 'lavender' ? 'bg-lavender-500' : ''}
                         ${action.color === 'sage' ? 'bg-sage-500' : ''}
                         ${action.color === 'coral' ? 'bg-coral-500' : ''}
+                        ${action.color === 'blue' ? 'bg-blue-500' : ''}
                       `}>
                         <action.icon size={24} className="text-white" />
                       </div>

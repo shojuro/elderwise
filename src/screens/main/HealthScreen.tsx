@@ -12,7 +12,8 @@ import {
   Clock,
   Target,
   Award,
-  CheckCircle2
+  CheckCircle2,
+  Camera
 } from 'lucide-react';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { ElderlyLayout } from '../../components/common/Layout';
@@ -20,6 +21,7 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Modal } from '../../components/common/Modal';
 import { Input } from '../../components/common/Input';
+import { useNavigate } from 'react-router-dom';
 
 interface HealthMetric {
   id: string;
@@ -85,6 +87,7 @@ const mockMedications: MedicationReminder[] = [
 ];
 
 export const HealthScreen: React.FC = () => {
+  const navigate = useNavigate();
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newMetricValue, setNewMetricValue] = useState('');
@@ -182,14 +185,24 @@ export const HealthScreen: React.FC = () => {
         <motion.div variants={itemVariants} className="mb-8 px-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-elder-h2">Medication Reminders</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={Plus}
-              onClick={() => setShowAddModal(true)}
-            >
-              Add
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={Camera}
+                onClick={() => navigate('/medication')}
+              >
+                Identify
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={Plus}
+                onClick={() => setShowAddModal(true)}
+              >
+                Add
+              </Button>
+            </div>
           </div>
           
           <div className="space-y-3">

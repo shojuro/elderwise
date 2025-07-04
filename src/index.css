@@ -198,3 +198,119 @@
     @apply text-lavender-800 bg-lavender-50;
   }
 }
+
+/* Additional Accessibility Styles */
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Skip to content link */
+.skip-link {
+  @apply absolute -top-10 left-0 bg-lavender-700 text-white px-4 py-2;
+  @apply rounded-br-elder z-50 transition-all duration-200;
+}
+
+.skip-link:focus {
+  @apply top-0;
+}
+
+/* Enhanced focus indicators for keyboard navigation */
+.keyboard-navigation *:focus {
+  @apply outline-none ring-4 ring-lavender-500 ring-opacity-75;
+  @apply shadow-elder-lg;
+}
+
+/* High contrast mode enhancements */
+.high-contrast {
+  filter: contrast(1.25);
+}
+
+.high-contrast .btn-elder {
+  @apply border-4;
+}
+
+.high-contrast .card-elder {
+  @apply border-4 border-black;
+}
+
+/* Text size variations */
+.text-size-small {
+  font-size: 16px;
+}
+
+.text-size-medium {
+  font-size: 18px;
+}
+
+.text-size-large {
+  font-size: 20px;
+}
+
+.text-size-extra-large {
+  font-size: 24px;
+}
+
+/* Error summary for forms */
+.error-summary {
+  @apply bg-coral-50 border-2 border-coral-500 rounded-elder p-4 mb-6;
+}
+
+.error-summary h3 {
+  @apply text-coral-800 font-bold mb-2;
+}
+
+.error-summary ul {
+  @apply list-disc pl-6 space-y-1;
+}
+
+.error-summary a {
+  @apply text-coral-700 underline hover:text-coral-900;
+}
+
+/* Voice control indicator */
+.voice-control-active {
+  @apply fixed top-4 right-4 bg-sage-500 text-white px-4 py-2;
+  @apply rounded-full flex items-center gap-2 z-50;
+  @apply shadow-elder-xl animate-gentle-pulse;
+}
+
+/* Required field indicators */
+.required::after {
+  content: " *";
+  @apply text-coral-500 font-bold;
+}
+
+/* Help text for form fields */
+.help-text {
+  @apply text-sm-elder text-lavender-600 mt-1;
+}
+
+/* ARIA live regions */
+[aria-live="polite"],
+[aria-live="assertive"] {
+  @apply sr-only;
+}
+
+/* Improved touch targets */
+@media (pointer: coarse) {
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role="button"],
+  [role="link"] {
+    min-height: 48px;
+    min-width: 48px;
+  }
+}

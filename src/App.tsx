@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
+import { initializeAccessibility } from './utils/accessibility';
+import { initializeMobile } from './utils/capacitor';
 
 // Screens
 import { WelcomeScreen } from './screens/auth/WelcomeScreen';
@@ -13,6 +15,7 @@ import { MemoryScreen } from './screens/main/MemoryScreen';
 import { EmergencyScreen } from './screens/main/EmergencyScreen';
 import { SettingsScreen } from './screens/main/SettingsScreen';
 import { HealthScreen } from './screens/main/HealthScreen';
+import { MedicationScreen } from './screens/main/MedicationScreen';
 
 // Store
 import { useAppStore } from './store';
@@ -55,10 +58,23 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 function App() {
+  useEffect(() => {
+    // Initialize accessibility features
+    initializeAccessibility();
+    
+    // Initialize mobile-specific features
+    initializeMobile();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
         <div className="App">
+          {/* Skip to main content link */}
+          <a href="#main-content" className="skip-link">
+            Skip to main content
+          </a>
+          
           <AnimatePresence mode="wait">
             <Routes>
               {/* Public routes */}
@@ -108,6 +124,12 @@ function App() {
               <Route path="/emergency" element={
                 <ProtectedRoute>
                   <EmergencyScreen />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/medication" element={
+                <ProtectedRoute>
+                  <MedicationScreen />
                 </ProtectedRoute>
               } />
 
