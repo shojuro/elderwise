@@ -1,0 +1,200 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Atkinson Hyperlegible font for accessibility */
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+@layer base {
+  html {
+    font-family: 'Atkinson Hyperlegible', 'Inter', system-ui, sans-serif;
+    font-size: 20px; /* Base font size larger for elderly users */
+  }
+
+  body {
+    @apply bg-cream-100 text-lavender-800;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    body {
+      @apply bg-white text-black;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Focus styles for accessibility */
+  *:focus {
+    @apply outline-none ring-4 ring-lavender-300 ring-opacity-50;
+  }
+
+  /* Touch target minimum sizes */
+  button, 
+  [role="button"],
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 48px;
+    min-width: 48px;
+  }
+}
+
+@layer components {
+  /* Elderly-friendly button styles */
+  .btn-elder {
+    @apply px-8 py-4 rounded-elder font-semibold text-lg-elder;
+    @apply transition-all duration-200 ease-in-out;
+    @apply focus:ring-4 focus:ring-opacity-50;
+    @apply active:scale-95;
+    min-height: 60px;
+    min-width: 120px;
+  }
+
+  .btn-primary {
+    @apply btn-elder bg-lavender-500 text-white;
+    @apply hover:bg-lavender-600 focus:ring-lavender-300;
+    @apply shadow-elder hover:shadow-elder-lg;
+  }
+
+  .btn-secondary {
+    @apply btn-elder bg-sage-500 text-white;
+    @apply hover:bg-sage-600 focus:ring-sage-300;
+    @apply shadow-elder hover:shadow-elder-lg;
+  }
+
+  .btn-emergency {
+    @apply btn-elder bg-coral-500 text-white;
+    @apply hover:bg-coral-600 focus:ring-coral-300;
+    @apply shadow-elder hover:shadow-elder-lg;
+  }
+
+  .btn-ghost {
+    @apply btn-elder bg-transparent text-lavender-700 border-2 border-lavender-300;
+    @apply hover:bg-lavender-50 focus:ring-lavender-300;
+  }
+
+  /* Card styles */
+  .card-elder {
+    @apply bg-white rounded-elder-lg shadow-elder p-6;
+    @apply border border-lavender-100;
+  }
+
+  /* Input styles */
+  .input-elder {
+    @apply w-full px-6 py-4 text-lg-elder rounded-elder;
+    @apply border-2 border-lavender-200 bg-white;
+    @apply focus:border-lavender-500 focus:ring-0;
+    @apply placeholder-lavender-400;
+    min-height: 60px;
+  }
+
+  /* Text styles */
+  .text-elder-h1 {
+    @apply text-3xl-elder font-bold text-lavender-800 mb-6;
+  }
+
+  .text-elder-h2 {
+    @apply text-2xl-elder font-semibold text-lavender-800 mb-4;
+  }
+
+  .text-elder-h3 {
+    @apply text-xl-elder font-medium text-lavender-700 mb-3;
+  }
+
+  .text-elder-body {
+    @apply text-base-elder text-lavender-700 leading-relaxed;
+  }
+
+  .text-elder-caption {
+    @apply text-sm-elder text-lavender-600;
+  }
+
+  /* Chat bubble styles */
+  .chat-bubble-user {
+    @apply bg-lavender-500 text-white rounded-elder-lg p-4 ml-8 mb-4;
+    @apply shadow-elder max-w-xs md:max-w-md;
+  }
+
+  .chat-bubble-ai {
+    @apply bg-white text-lavender-800 rounded-elder-lg p-4 mr-8 mb-4;
+    @apply shadow-elder border border-lavender-100 max-w-xs md:max-w-md;
+  }
+
+  /* Loading animation */
+  .loading-dots {
+    @apply flex space-x-1;
+  }
+
+  .loading-dots div {
+    @apply w-3 h-3 bg-lavender-400 rounded-full animate-gentle-pulse;
+  }
+
+  .loading-dots div:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .loading-dots div:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  /* Voice input styles */
+  .voice-indicator {
+    @apply w-32 h-32 bg-lavender-500 rounded-full flex items-center justify-center;
+    @apply shadow-elder-xl animate-gentle-pulse;
+  }
+
+  .voice-waveform {
+    @apply flex items-center justify-center space-x-1;
+  }
+
+  .voice-waveform div {
+    @apply w-1 bg-lavender-500 rounded-full;
+    animation: waveform 1s ease-in-out infinite;
+  }
+
+  @keyframes waveform {
+    0%, 100% { height: 4px; }
+    50% { height: 20px; }
+  }
+
+  /* Memory card styles */
+  .memory-card {
+    @apply card-elder cursor-pointer;
+    @apply hover:shadow-elder-lg transform hover:scale-105;
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  /* Emergency button styles */
+  .emergency-btn {
+    @apply w-full h-32 bg-coral-500 text-white text-2xl-elder font-bold;
+    @apply rounded-elder-xl shadow-elder-xl;
+    @apply hover:bg-coral-600 active:scale-95;
+    @apply focus:ring-4 focus:ring-coral-300;
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  /* Navigation styles */
+  .nav-item {
+    @apply flex flex-col items-center justify-center p-4;
+    @apply text-lavender-600 hover:text-lavender-800;
+    @apply transition-colors duration-200 ease-in-out;
+    min-height: 80px;
+  }
+
+  .nav-item.active {
+    @apply text-lavender-800 bg-lavender-50;
+  }
+}
