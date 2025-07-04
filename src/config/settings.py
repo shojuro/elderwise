@@ -48,6 +48,14 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_format: str = "json"
     
+    # Vision API
+    google_vision_api_key: Optional[str] = None
+    
+    # Medication APIs
+    rximage_base_url: str = "http://rximage.nlm.nih.gov/api/rximage/1"
+    rxnorm_base_url: str = "https://rxnav.nlm.nih.gov/REST"
+    fda_api_base_url: str = "https://api.fda.gov/drug"
+    
     class Config:
         env_file = ".env"
         case_sensitive = False
