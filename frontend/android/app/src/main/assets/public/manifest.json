@@ -1,0 +1,55 @@
+{
+  "short_name": "ElderWise",
+  "name": "ElderWise - AI Companion",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#8B5CF6",
+  "background_color": "#FEF9F3",
+  "description": "A caring AI companion for elderly users",
+  "orientation": "portrait",
+  "categories": ["health", "lifestyle", "social"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Chat with ElderWise",
+      "short_name": "Chat",
+      "description": "Start a conversation",
+      "url": "/chat",
+      "icons": [
+        {
+          "src": "chat-icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Emergency",
+      "short_name": "Emergency",
+      "description": "Quick access to emergency help",
+      "url": "/emergency",
+      "icons": [
+        {
+          "src": "emergency-icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
