@@ -98,6 +98,33 @@ export interface MedicationReminder {
   notes?: string;
 }
 
+// Medication identification types
+export interface MedicationIdentification {
+  id: string;
+  name: string;
+  genericName: string;
+  brandNames: string[];
+  shape: string;
+  color: string;
+  imprint: string;
+  strength: string;
+  confidence: number;
+}
+
+export interface DrugInteraction {
+  drugName: string;
+  severity: 'minor' | 'moderate' | 'major' | 'contraindicated';
+  description: string;
+  management: string;
+}
+
+export interface FoodInteraction {
+  foodItem: string;
+  severity: 'minor' | 'moderate' | 'major';
+  description: string;
+  timingInstructions?: string;
+}
+
 // Family types
 export interface FamilyMember {
   id: string;

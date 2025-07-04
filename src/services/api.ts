@@ -48,11 +48,28 @@ class APIService {
     );
   }
 
-  // Authentication
+  // Authentication (mock for now since backend doesn't have auth endpoints)
   async login(credentials: { username: string; password: string }): Promise<APIResponse<{ user: User; token: string }>> {
     try {
-      const response = await this.api.post('/auth/login', credentials);
-      return response.data;
+      // Mock authentication for testing
+      // In production, replace with actual auth endpoint
+      const mockUser: User = {
+        id: 'user_' + Date.now(),
+        name: credentials.username,
+        age: 70,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        role: 'elderly',
+        emergencyContacts: []
+      };
+      
+      return {
+        success: true,
+        data: {
+          user: mockUser,
+          token: 'mock-token-' + Date.now()
+        }
+      };
     } catch (error) {
       throw this.handleError(error);
     }
@@ -60,9 +77,8 @@ class APIService {
 
   async logout(): Promise<APIResponse> {
     try {
-      const response = await this.api.post('/auth/logout');
       localStorage.removeItem('elderwise-token');
-      return response.data;
+      return { success: true };
     } catch (error) {
       throw this.handleError(error);
     }
@@ -156,7 +172,13 @@ class APIService {
   }
 
   // Memory management
-  async createMemory(memory: Partial<Memory>): Promise<APIResponse<Memory>> {
+  async createMemory(memory: {
+    user_id: string;
+    content: string;
+    type: 'interaction' | 'health' | 'emotion' | 'event' | 'preference';
+    tags?: string[];
+    metadata?: Record<string, any>;
+  }): Promise<APIResponse<any>> {
     try {
       const response = await this.api.post('/memory/create', memory);
       return response.data;
@@ -165,7 +187,12 @@ class APIService {
     }
   }
 
-  async searchMemories(searchParams: MemorySearch): Promise<APIResponse<Memory[]>> {
+  async searchMemories(searchParams: {
+    user_id: string;
+    query: string;
+    top_k?: number;
+    retention?: 'active' | 'archive';
+  }): Promise<APIResponse<any>> {
     try {
       const response = await this.api.post('/memory/search', searchParams);
       return response.data;
@@ -330,4 +357,12 @@ class APIService {
     } else if (error.request) {
       // Request was made but no response received
       return new Error('Network Error: Unable to reach server');
-    } e
+    } else {
+      // Something else happened
+      return new Error(`Request Error: ${error.message}`);
+    }
+  }
+}
+
+export const apiService = new APIService();
+export default apiService;
