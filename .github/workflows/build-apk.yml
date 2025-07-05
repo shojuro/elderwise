@@ -67,44 +67,74 @@ jobs:
     - name: Initialize Capacitor Android
       working-directory: ./frontend
       run: |
-        # Check if android platform exists
-        if [ ! -d "android" ]; then
-          echo "Adding Android platform..."
-          npx cap add android
-        fi
+        # Clean start
+        rm -rf android
+        
+        # Add Android platform
+        echo "Adding Android platform..."
+        npx cap add android
         
         # Sync Capacitor
         echo "Syncing Capacitor..."
         npx cap sync android
+        
+        # Verify Android project structure
+        echo "=== Android project structure ==="
+        ls -la android/
+        echo "=== App directory ==="
+        ls -la android/app/
+        echo "=== Gradle files ==="
+        find android/ -name "*.gradle" -type f
     
-    - name: Make gradlew executable
+    - name: Check and fix Gradle tasks
       working-directory: ./frontend/android
       run: |
-        if [ -f gradlew ]; then
-          chmod +x gradlew
+        echo "=== Available Gradle tasks ==="
+        chmod +x gradlew || gradle wrapper && chmod +x gradlew
+        ./gradlew tasks --all
+        
+        echo "=== Checking for app module ==="
+        if [ ! -d "app" ]; then
+          echo "ERROR: app directory not found!"
+          ls -la
+          exit 1
+        fi
+        
+        echo "=== App build.gradle content ==="
+        if [ -f "app/build.gradle" ]; then
+          cat app/build.gradle
         else
-          echo "gradlew not found, creating wrapper..."
-          gradle wrapper
-          chmod +x gradlew
+          echo "ERROR: app/build.gradle not found!"
+          exit 1
         fi
     
     - name: Build APK
       working-directory: ./frontend/android
       run: |
-        echo "Building APK..."
-        ./gradlew assembleDebug --no-daemon --stacktrace
+        echo "Building APK with full path..."
+        ./gradlew app:assembleDebug --no-daemon --stacktrace || {
+          echo "Trying alternative build command..."
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
+        }
     
     - name: Find APK
       id: apk
       run: |
-        APK_PATH=$(find frontend/android/app/build/outputs/apk/debug -name "*.apk" | head -1)
-        echo "APK found at: $APK_PATH"
-        echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+        echo "Searching for APK files..."
+        find frontend/ -name "*.apk" -type f
         
-        if [ ! -f "$APK_PATH" ]; then
+        APK_PATH=$(find frontend/android -name "*.apk" -type f | head -1)
+        
+        if [ -z "$APK_PATH" ]; then
           echo "ERROR: APK not found!"
+          echo "=== Checking build outputs ==="
+          find frontend/android -name "outputs" -type d
+          find frontend/android -path "*/build/*" -name "*.apk" -type f
           exit 1
         fi
+        
+        echo "APK found at: $APK_PATH"
+        echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
     
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4

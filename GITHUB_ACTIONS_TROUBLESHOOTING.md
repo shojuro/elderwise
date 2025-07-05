@@ -68,11 +68,48 @@ When the workflow succeeds:
 2. **Release:** Automatic GitHub release with downloadable APK
 3. **Clear instructions:** Download and install instructions included
 
+## Specific Error: "Task 'assembleDebug' not found"
+
+**This is the error you encountered!** 
+
+**Problem:** The Android project structure isn't properly set up by Capacitor.
+
+**Root Cause:** 
+- The existing `android/` directory was incomplete
+- Gradle couldn't find the `app` module
+- `assembleDebug` task exists in the `app` subproject, not root
+
+**Solution Applied:**
+The updated workflow now:
+1. ✅ **Removes old android directory:** `rm -rf android`
+2. ✅ **Creates fresh Android project:** `npx cap add android`
+3. ✅ **Uses correct build command:** `./gradlew app:assembleDebug`
+4. ✅ **Verifies project structure** before building
+
+## Try These Workflows
+
+### Option 1: Main Workflow (Recommended)
+```
+Actions → "Build Android APK" → "Run workflow"
+```
+
+### Option 2: Simple Workflow (Backup)
+```
+Actions → "Build APK (Simple)" → "Run workflow"
+```
+
+The simple workflow is more basic but should definitely work.
+
 ## If It Still Fails
 
-1. **Check the logs:** Click on the failed workflow run to see detailed logs
-2. **Run test workflow first:** Use "Test Basic Build" to isolate issues
-3. **Manual trigger:** Use "Run workflow" button instead of push trigger
-4. **Check repository settings:** Ensure Actions are enabled
+1. **Check the logs:** Look for specific error messages
+2. **Try the simple workflow first:** It has fewer moving parts
+3. **Manual trigger:** Use "Run workflow" button
+4. **Check build outputs:** The workflow now shows detailed debugging info
 
-The workflow is now much more robust and should handle most common issues automatically.
+**Most likely fix:** The updated workflow should work because it:
+- Completely rebuilds the Android project from scratch
+- Uses the correct Gradle task (`app:assembleDebug` instead of `assembleDebug`)
+- Verifies each step before proceeding
+
+The workflow is now much more robust and should handle this specific "assembleDebug not found" error.
