@@ -1,0 +1,35 @@
+{
+  "appId": "com.elderwise.app",
+  "appName": "ElderWise",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true,
+    "allowNavigation": ["*"]
+  },
+  "android": {
+    "allowMixedContent": true,
+    "minSdkVersion": 23,
+    "targetSdkVersion": 33,
+    "versionCode": 1,
+    "versionName": "1.0.0"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "launchAutoHide": true,
+      "backgroundColor": "#F5F5F0",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "androidSpinnerStyle": "large",
+      "iosSpinnerStyle": "small",
+      "spinnerColor": "#B8A9E0"
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#B8A9E0",
+      "sound": "beep.wav"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -18,7 +18,10 @@
     "mobile:setup": "./setup-mobile.sh",
     "mobile:build": "./build-apk.sh",
     "mobile:sync": "npx cap sync",
-    "mobile:run:android": "npx cap run android"
+    "mobile:run:android": "npx cap run android",
+    "build:debug": "npm run build && cp capacitor.config.debug.json capacitor.config.json",
+    "build:release": "npm run build && cp capacitor.config.release.json capacitor.config.json",
+    "version:bump": "npm version patch --no-git-tag-version"
   },
   "dependencies": {
     "@capacitor/android": "^6.1.2",
