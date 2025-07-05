@@ -1,0 +1,213 @@
+name: Troubleshoot APK Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: 33
+        build-tools: 33.0.0
+    
+    - name: Install Node dependencies
+      working-directory: ./frontend
+      run: |
+        npm ci || npm install
+    
+    - name: Build React app with debugging
+      working-directory: ./frontend
+      run: |
+        # Add console logging to help debug hanging issue
+        echo "=== Adding debug logging to index.html ==="
+        npm run build
+        
+        # Check if service worker might be causing issues
+        if [ -f "dist/sw.js" ] || [ -f "dist/service-worker.js" ]; then
+          echo "WARNING: Service worker detected. This might cause loading issues."
+          ls -la dist/*.js
+        fi
+        
+        # Add debug script to index.html
+        sed -i '/<\/head>/i\
+        <script>\
+          console.log("ElderWise: Starting app load...");\
+          window.addEventListener("load", function() {\
+            console.log("ElderWise: Window loaded");\
+          });\
+          window.addEventListener("error", function(e) {\
+            console.error("ElderWise Error:", e);\
+          });\
+          // Timeout to detect hanging\
+          setTimeout(function() {\
+            if (!document.getElementById("root").innerHTML || document.getElementById("root").innerHTML.includes("Loading")) {\
+              console.error("ElderWise: App appears to be hanging!");\
+              document.body.innerHTML = "<h1>App Loading Error</h1><p>The app failed to load. Check console for errors.</p>";\
+            }\
+          }, 10000);\
+        </script>' dist/index.html
+        
+        echo "=== Checking for common issues ==="
+        # Check for absolute paths that might break in APK
+        grep -E "(href|src)=['\"]/" dist/index.html | head -5 || echo "No absolute paths found in index.html"
+        
+        # Check if all JS files exist
+        grep -oE 'src="[^"]+\.js"' dist/index.html | cut -d'"' -f2 | while read js; do
+          if [ ! -f "dist/$js" ]; then
+            echo "WARNING: Missing JS file: $js"
+          fi
+        done
+    
+    - name: Create minimal test configuration
+      working-directory: ./frontend
+      run: |
+        # Create a minimal config to isolate issues
+        cat > capacitor.config.minimal.json << 'EOF'
+        {
+          "appId": "com.elderwise.test",
+          "appName": "ElderWise Test",
+          "webDir": "dist",
+          "server": {
+            "androidScheme": "https"
+          },
+          "android": {
+            "minSdkVersion": 23,
+            "targetSdkVersion": 33
+          }
+        }
+        EOF
+        
+        # Use minimal configuration
+        cp capacitor.config.minimal.json capacitor.config.json
+        
+        echo "=== Using minimal configuration ==="
+        cat capacitor.config.json
+    
+    - name: Install Capacitor CLI
+      run: npm install -g @capacitor/cli
+    
+    - name: Build with minimal plugins
+      working-directory: ./frontend
+      run: |
+        # Remove android directory for clean start
+        rm -rf android
+        
+        # Temporarily disable plugins that might cause issues
+        echo "=== Creating Android project without plugins ==="
+        npx cap add android
+        
+        # Minimal sync
+        npx cap sync android
+        
+        # Check what plugins are included
+        echo "=== Checking included plugins ==="
+        grep -r "registerPlugin" android/app/src/main/java/ || echo "No plugins registered in Java"
+        
+        # Check capacitor config in Android
+        cat android/app/src/main/assets/capacitor.config.json
+    
+    - name: Add WebView debugging
+      working-directory: ./frontend/android
+      run: |
+        # Enable WebView debugging
+        echo "=== Enabling WebView debugging ==="
+        
+        # Find MainActivity file
+        MAIN_ACTIVITY=$(find app/src/main/java -name "MainActivity.java" | head -1)
+        
+        if [ -n "$MAIN_ACTIVITY" ]; then
+          # Add WebView debugging
+          sed -i '/super.onCreate/a\
+          \
+          // Enable WebView debugging\
+          if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {\
+              android.webkit.WebView.setWebContentsDebuggingEnabled(true);\
+          }' "$MAIN_ACTIVITY"
+          
+          echo "=== Updated MainActivity ==="
+          cat "$MAIN_ACTIVITY"
+        fi
+    
+    - name: Build Test APK
+      working-directory: ./frontend/android
+      run: |
+        chmod +x gradlew
+        ./gradlew clean
+        ./gradlew app:assembleDebug --no-daemon --stacktrace
+    
+    - name: Create diagnostic APK
+      id: apk
+      run: |
+        APK_PATH=$(find frontend/android -name "*.apk" -type f | head -1)
+        
+        if [ -z "$APK_PATH" ]; then
+          echo "ERROR: APK not found!"
+          exit 1
+        fi
+        
+        # Install aapt
+        sudo apt-get update && sudo apt-get install -y aapt
+        
+        echo "=== APK Analysis ==="
+        aapt dump badging "$APK_PATH" | head -10
+        
+        # Check APK contents
+        echo "=== APK Contents (assets) ==="
+        unzip -l "$APK_PATH" | grep "assets/" | head -10
+        
+        # Extract and check index.html
+        echo "=== Extracting index.html from APK ==="
+        unzip -p "$APK_PATH" "assets/public/index.html" | head -20 || echo "Could not extract index.html"
+        
+        TIMESTAMP=$(date +%Y%m%d_%H%M)
+        NEW_NAME="ElderWise-Troubleshoot-${{ github.run_number }}-${TIMESTAMP}.apk"
+        NEW_PATH="frontend/android/app/build/outputs/apk/debug/${NEW_NAME}"
+        
+        mkdir -p $(dirname "$NEW_PATH")
+        cp "$APK_PATH" "$NEW_PATH"
+        
+        echo "apk_path=$NEW_PATH" >> $GITHUB_OUTPUT
+        echo "apk_name=$NEW_NAME" >> $GITHUB_OUTPUT
+    
+    - name: Upload Diagnostic APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: elderwise-diagnostic-apk-${{ github.run_number }}
+        path: ${{ steps.apk.outputs.apk_path }}
+        retention-days: 7
+    
+    - name: Diagnostic Summary
+      run: |
+        echo "## 🔍 APK Diagnostic Build" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "This is a minimal test build to diagnose loading issues:" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ WebView debugging enabled" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Console logging added" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Minimal configuration (no plugins)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Error detection timeout (10 seconds)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**To debug:**" >> $GITHUB_STEP_SUMMARY
+        echo "1. Install this APK" >> $GITHUB_STEP_SUMMARY
+        echo "2. Connect device to Chrome DevTools (chrome://inspect)" >> $GITHUB_STEP_SUMMARY
+        echo "3. Check console for 'ElderWise:' messages" >> $GITHUB_STEP_SUMMARY
+        echo "4. If app hangs, error message will appear after 10 seconds" >> $GITHUB_STEP_SUMMARY

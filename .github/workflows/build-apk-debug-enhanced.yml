@@ -1,0 +1,188 @@
+name: Build Debug APK (Enhanced)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: 33
+        build-tools: 33.0.0
+    
+    - name: Install Node dependencies
+      working-directory: ./frontend
+      run: |
+        npm ci || npm install
+    
+    - name: Build React app
+      working-directory: ./frontend
+      run: |
+        npm run build
+        echo "=== Verifying dist directory ==="
+        ls -la dist/
+        echo "=== index.html content (first 20 lines) ==="
+        head -n 20 dist/index.html || echo "index.html not found"
+    
+    - name: Install Capacitor CLI
+      run: npm install -g @capacitor/cli
+    
+    - name: Setup Debug Configuration
+      working-directory: ./frontend
+      run: |
+        echo "=== Current capacitor.config.json (before) ==="
+        cat capacitor.config.json
+        
+        # Use debug configuration
+        cp capacitor.config.debug.json capacitor.config.json
+        
+        echo "=== Updated capacitor.config.json (after) ==="
+        cat capacitor.config.json
+        
+        # Verify the package ID is correct
+        PACKAGE_ID=$(jq -r '.appId' capacitor.config.json)
+        if [ "$PACKAGE_ID" != "com.elderwise.app.debug" ]; then
+          echo "ERROR: Package ID is not set correctly. Expected: com.elderwise.app.debug, Got: $PACKAGE_ID"
+          exit 1
+        fi
+        
+        # Clean and create fresh Android project
+        echo "=== Removing old android directory ==="
+        rm -rf android
+        
+        echo "=== Adding Android platform ==="
+        npx cap add android
+        
+        echo "=== Syncing Capacitor ==="
+        npx cap sync android
+        
+        echo "=== Verifying Android manifest ==="
+        grep -E "(package=|applicationId)" android/app/src/main/AndroidManifest.xml || true
+        grep -E "(package=|applicationId)" android/app/build.gradle || true
+    
+    - name: Verify and Fix Android Configuration
+      working-directory: ./frontend/android
+      run: |
+        echo "=== Checking app/build.gradle for applicationId ==="
+        if grep -q "applicationId" app/build.gradle; then
+          CURRENT_ID=$(grep "applicationId" app/build.gradle | grep -oE '"[^"]+"' | tr -d '"' | head -1)
+          echo "Current applicationId: $CURRENT_ID"
+          
+          if [ "$CURRENT_ID" != "com.elderwise.app.debug" ]; then
+            echo "WARNING: applicationId mismatch. Fixing..."
+            sed -i 's/applicationId "com.elderwise.app"/applicationId "com.elderwise.app.debug"/g' app/build.gradle
+            echo "=== Updated app/build.gradle ==="
+            grep "applicationId" app/build.gradle
+          fi
+        fi
+        
+        echo "=== Checking AndroidManifest.xml ==="
+        if [ -f "app/src/main/AndroidManifest.xml" ]; then
+          grep "package=" app/src/main/AndroidManifest.xml || true
+        fi
+    
+    - name: Build Debug APK
+      working-directory: ./frontend/android
+      run: |
+        chmod +x gradlew
+        
+        echo "=== Cleaning previous builds ==="
+        ./gradlew clean
+        
+        echo "=== Building Debug APK ==="
+        ./gradlew app:assembleDebug --no-daemon --stacktrace --info | tee build.log
+        
+        echo "=== Build output summary ==="
+        grep -E "(BUILD SUCCESSFUL|BUILD FAILED|> Task :app:assembleDebug)" build.log || true
+    
+    - name: Analyze APK
+      id: apk
+      run: |
+        echo "=== Finding APK files ==="
+        find frontend/android -name "*.apk" -type f -ls
+        
+        APK_PATH=$(find frontend/android -name "*.apk" -type f | head -1)
+        
+        if [ -z "$APK_PATH" ]; then
+          echo "ERROR: APK not found!"
+          echo "=== Checking build directories ==="
+          find frontend/android/app/build -type d -name "outputs" -ls
+          exit 1
+        fi
+        
+        echo "=== APK found at: $APK_PATH ==="
+        
+        # Install aapt for APK analysis
+        sudo apt-get update && sudo apt-get install -y aapt
+        
+        echo "=== APK Package Info ==="
+        aapt dump badging "$APK_PATH" | grep -E "(package:|application-label:|launchable-activity:)" || true
+        
+        # Verify package name
+        ACTUAL_PACKAGE=$(aapt dump badging "$APK_PATH" | grep "package:" | grep -oE "name='[^']+'" | cut -d"'" -f2)
+        echo "Actual package name: $ACTUAL_PACKAGE"
+        
+        if [ "$ACTUAL_PACKAGE" != "com.elderwise.app.debug" ]; then
+          echo "WARNING: Package name mismatch! Expected: com.elderwise.app.debug, Got: $ACTUAL_PACKAGE"
+        fi
+        
+        # Create descriptive filename
+        TIMESTAMP=$(date +%Y%m%d_%H%M)
+        BUILD_NUMBER=${{ github.run_number }}
+        NEW_NAME="ElderWise-Debug-${BUILD_NUMBER}-${TIMESTAMP}.apk"
+        NEW_PATH="frontend/android/app/build/outputs/apk/debug/${NEW_NAME}"
+        
+        mkdir -p $(dirname "$NEW_PATH")
+        cp "$APK_PATH" "$NEW_PATH"
+        
+        echo "APK renamed to: $NEW_NAME"
+        echo "apk_path=$NEW_PATH" >> $GITHUB_OUTPUT
+        echo "apk_name=$NEW_NAME" >> $GITHUB_OUTPUT
+        echo "actual_package=$ACTUAL_PACKAGE" >> $GITHUB_OUTPUT
+        
+        # Show APK info
+        ls -lh "$NEW_PATH"
+        echo "APK size: $(du -h "$NEW_PATH" | cut -f1)"
+    
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: elderwise-debug-apk-enhanced-${{ github.run_number }}
+        path: ${{ steps.apk.outputs.apk_path }}
+        retention-days: 14
+    
+    - name: Build Summary
+      run: |
+        echo "## 📱 Debug APK Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **File:** ${{ steps.apk.outputs.apk_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Expected Package:** com.elderwise.app.debug" >> $GITHUB_STEP_SUMMARY
+        echo "- **Actual Package:** ${{ steps.apk.outputs.actual_package }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build Number:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ steps.apk.outputs.actual_package }}" != "com.elderwise.app.debug" ]; then
+          echo "⚠️ **Warning:** Package ID mismatch detected. The APK may conflict with existing installations." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "✅ **Success:** Debug APK built with correct package ID." >> $GITHUB_STEP_SUMMARY
+        fi

@@ -49,6 +49,54 @@ git push origin master
 
 ## Common Issues and Solutions
 
+### Issue: APK hangs on loading / white screen
+
+**Symptoms:**
+- App installs successfully but shows white screen
+- "Loading..." message never disappears  
+- App appears to hang indefinitely
+
+**Causes:**
+1. PWA service worker conflicts with APK WebView
+2. Absolute paths in HTML don't resolve in APK context
+3. Manifest.json PWA references cause WebView confusion
+
+**Solution:**
+```yaml
+# Remove PWA artifacts before build
+- name: Remove PWA artifacts
+  run: |
+    rm -f public/sw.js public/manifest.json
+    sed -i '/<link rel="manifest"/d' index.html
+    
+# Fix absolute paths after build
+- name: Fix paths
+  run: |
+    sed -i 's|href="/|href="./|g' dist/index.html
+    sed -i 's|src="/|src="./|g' dist/index.html
+```
+
+**Use the "Build APK (Fixed)" workflow which includes all these fixes.**
+
+### Issue: "Package conflicts with an existing package"
+
+**Symptoms:**
+- Installation fails with package conflict error
+- Can't install debug and release versions side-by-side
+
+**Causes:**
+- Same package ID used for different builds
+- Different signing keys for same package ID
+
+**Solution:**
+```yaml
+# Use different package IDs for debug/release
+Debug: com.elderwise.app.debug
+Release: com.elderwise.app
+```
+
+**The fixed workflows now properly handle package IDs.**
+
 ### Issue: "npm ci" fails
 **Solution:** The workflow now uses `npm ci || npm install` as fallback
 

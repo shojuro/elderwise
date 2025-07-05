@@ -1,0 +1,275 @@
+name: Build APK (Fixed)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build Type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: 33
+        build-tools: 33.0.0
+    
+    - name: Install Node dependencies
+      working-directory: ./frontend
+      run: |
+        npm ci || npm install
+    
+    - name: Remove PWA artifacts
+      working-directory: ./frontend
+      run: |
+        echo "=== Removing PWA artifacts that might cause issues ==="
+        
+        # Remove service worker files
+        rm -f public/sw.js
+        rm -f src/sw.js
+        rm -f src/service-worker.js
+        
+        # Remove manifest.json to prevent PWA conflicts
+        rm -f public/manifest.json
+        
+        # Create a temporary index.html without PWA references
+        cp index.html index.html.backup
+        
+        # Remove PWA meta tags and manifest link
+        sed -i '/<link rel="manifest"/d' index.html
+        sed -i '/<meta name="mobile-web-app-capable"/d' index.html
+        sed -i '/<meta name="apple-mobile-web-app-capable"/d' index.html
+        sed -i '/<meta name="apple-mobile-web-app-status-bar-style"/d' index.html
+        sed -i '/<meta name="apple-mobile-web-app-title"/d' index.html
+        sed -i '/<!-- PWA Meta Tags -->/d' index.html
+        
+        echo "=== Updated index.html (PWA references removed) ==="
+        cat index.html
+    
+    - name: Build React app with fixes
+      working-directory: ./frontend
+      run: |
+        # Build the app
+        npm run build
+        
+        # Fix absolute paths to relative paths for APK compatibility
+        echo "=== Fixing absolute paths in dist/index.html ==="
+        sed -i 's|href="/|href="./|g' dist/index.html
+        sed -i 's|src="/|src="./|g' dist/index.html
+        
+        # Remove any manifest references that might have been added during build
+        sed -i '/<link rel="manifest"/d' dist/index.html
+        
+        # Add loading feedback
+        sed -i '/<div id="root"><\/div>/i\
+        <style>\
+          #root:empty::after {\
+            content: "Loading ElderWise...";\
+            display: block;\
+            text-align: center;\
+            padding: 50px;\
+            font-family: Arial, sans-serif;\
+            font-size: 20px;\
+            color: #666;\
+          }\
+        </style>' dist/index.html
+        
+        echo "=== Final dist/index.html (first 30 lines) ==="
+        head -n 30 dist/index.html
+    
+    - name: Install Capacitor CLI
+      run: npm install -g @capacitor/cli
+    
+    - name: Setup Capacitor Configuration
+      working-directory: ./frontend
+      run: |
+        # Choose configuration based on build type
+        if [ "${{ inputs.build_type }}" == "debug" ]; then
+          echo "=== Using debug configuration ==="
+          cp capacitor.config.debug.json capacitor.config.json
+        else
+          echo "=== Using release configuration ==="
+          cp capacitor.config.release.json capacitor.config.json
+        fi
+        
+        # Remove plugin configurations that might cause issues
+        echo "=== Simplifying capacitor configuration ==="
+        jq 'del(.plugins.SplashScreen) | del(.plugins.LocalNotifications)' capacitor.config.json > capacitor.config.tmp.json
+        mv capacitor.config.tmp.json capacitor.config.json
+        
+        echo "=== Final capacitor.config.json ==="
+        cat capacitor.config.json
+        
+        # Clean start
+        rm -rf android
+        
+        # Add Android platform
+        npx cap add android
+        
+        # Sync without copying PWA files
+        npx cap sync android
+    
+    - name: Verify Android Configuration
+      working-directory: ./frontend/android
+      run: |
+        echo "=== Verifying package ID in build.gradle ==="
+        EXPECTED_ID="com.elderwise.app"
+        if [ "${{ inputs.build_type }}" == "debug" ]; then
+          EXPECTED_ID="com.elderwise.app.debug"
+        fi
+        
+        # Check and fix applicationId if needed
+        CURRENT_ID=$(grep "applicationId" app/build.gradle | grep -oE '"[^"]+"' | tr -d '"' | head -1)
+        echo "Expected: $EXPECTED_ID"
+        echo "Current: $CURRENT_ID"
+        
+        if [ "$CURRENT_ID" != "$EXPECTED_ID" ]; then
+          echo "Fixing applicationId..."
+          sed -i "s/applicationId \".*\"/applicationId \"$EXPECTED_ID\"/g" app/build.gradle
+        fi
+        
+        # Remove any PWA files that might have been copied
+        echo "=== Removing PWA files from Android assets ==="
+        find app/src/main/assets -name "sw.js" -delete
+        find app/src/main/assets -name "service-worker.js" -delete
+        find app/src/main/assets -name "manifest.json" -delete
+        
+        # Enable WebView debugging for troubleshooting
+        MAIN_ACTIVITY=$(find app/src/main/java -name "MainActivity.java" | head -1)
+        if [ -n "$MAIN_ACTIVITY" ]; then
+          sed -i '/super.onCreate/a\
+          \
+          // Enable WebView debugging\
+          if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {\
+              android.webkit.WebView.setWebContentsDebuggingEnabled(true);\
+          }' "$MAIN_ACTIVITY"
+        fi
+    
+    - name: Build APK
+      working-directory: ./frontend/android
+      run: |
+        chmod +x gradlew
+        ./gradlew clean
+        ./gradlew app:assembleDebug --no-daemon --stacktrace
+    
+    - name: Process APK
+      id: apk
+      run: |
+        APK_PATH=$(find frontend/android -name "*.apk" -type f | head -1)
+        
+        if [ -z "$APK_PATH" ]; then
+          echo "ERROR: APK not found!"
+          exit 1
+        fi
+        
+        # Install aapt for verification
+        sudo apt-get update && sudo apt-get install -y aapt
+        
+        # Verify package name
+        ACTUAL_PACKAGE=$(aapt dump badging "$APK_PATH" | grep "package:" | grep -oE "name='[^']+'" | cut -d"'" -f2)
+        echo "Package name: $ACTUAL_PACKAGE"
+        
+        # Create filename
+        TIMESTAMP=$(date +%Y%m%d_%H%M)
+        BUILD_NUMBER=${{ github.run_number }}
+        
+        if [ "${{ inputs.build_type }}" == "debug" ]; then
+          APK_NAME="ElderWise-Debug-Fixed-${BUILD_NUMBER}-${TIMESTAMP}.apk"
+        else
+          APK_NAME="ElderWise-Release-Fixed-${BUILD_NUMBER}-${TIMESTAMP}.apk"
+        fi
+        
+        NEW_PATH="frontend/android/app/build/outputs/apk/debug/${APK_NAME}"
+        mkdir -p $(dirname "$NEW_PATH")
+        cp "$APK_PATH" "$NEW_PATH"
+        
+        echo "apk_path=$NEW_PATH" >> $GITHUB_OUTPUT
+        echo "apk_name=$APK_NAME" >> $GITHUB_OUTPUT
+        echo "package_name=$ACTUAL_PACKAGE" >> $GITHUB_OUTPUT
+        
+        # Display size
+        SIZE=$(du -h "$NEW_PATH" | cut -f1)
+        echo "APK size: $SIZE"
+        echo "apk_size=$SIZE" >> $GITHUB_OUTPUT
+    
+    - name: Upload Fixed APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: elderwise-${{ inputs.build_type }}-fixed-${{ github.run_number }}
+        path: ${{ steps.apk.outputs.apk_path }}
+        retention-days: 30
+    
+    - name: Create Release (if master branch)
+      if: github.ref == 'refs/heads/master' && inputs.build_type == 'release'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        TAG="fixed-${{ github.run_number }}"
+        
+        gh release create "$TAG" \
+          --title "ElderWise Fixed Build ${{ github.run_number }}" \
+          --notes "🔧 **Fixed APK Build**
+
+        **Changes:**
+        - ✅ Removed PWA artifacts that cause hanging
+        - ✅ Fixed absolute paths to relative paths
+        - ✅ Removed service worker references
+        - ✅ Simplified plugin configuration
+        - ✅ Added WebView debugging
+        
+        **Package:** ${{ steps.apk.outputs.package_name }}
+        **Size:** ${{ steps.apk.outputs.apk_size }}
+        
+        **Installation:**
+        1. Uninstall any previous version
+        2. Download and install this APK
+        3. Grant necessary permissions
+        
+        **If the app was hanging before, this build should fix it!**" \
+          --prerelease \
+          "${{ steps.apk.outputs.apk_path }}#${{ steps.apk.outputs.apk_name }}"
+    
+    - name: Build Summary
+      run: |
+        echo "## 🔧 Fixed APK Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Build Info" >> $GITHUB_STEP_SUMMARY
+        echo "- **Type:** ${{ inputs.build_type }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **File:** ${{ steps.apk.outputs.apk_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Package:** ${{ steps.apk.outputs.package_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Size:** ${{ steps.apk.outputs.apk_size }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Fixes Applied" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Removed PWA service worker files" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Removed manifest.json references" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Fixed absolute paths to relative" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Simplified plugin configuration" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Added loading indicator" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Enabled WebView debugging" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "This build should resolve the hanging issue!" >> $GITHUB_STEP_SUMMARY
