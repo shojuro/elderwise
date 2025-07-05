@@ -6,6 +6,7 @@ import logging
 from src.utils.database import mongodb_manager, redis_manager, pinecone_manager
 from src.utils.scheduler import memory_scheduler
 from src.api.routes import ai_router, user_router, memory_router
+from src.api.routes.medication import router as medication_router
 from src.config.settings import settings
 
 # Configure logging
@@ -67,6 +68,7 @@ app.add_middleware(
 app.include_router(ai_router, prefix="/ai", tags=["AI"])
 app.include_router(user_router, prefix="/users", tags=["Users"])
 app.include_router(memory_router, prefix="/memory", tags=["Memory"])
+app.include_router(medication_router, prefix="/medication", tags=["Medication"])
 
 
 @app.get("/")
