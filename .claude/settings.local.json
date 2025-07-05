@@ -32,7 +32,8 @@
       "Bash(./build-apk.sh:*)",
       "Bash(./create-pwa-package.sh:*)",
       "Bash(./init-android.sh:*)",
-      "Bash(./prepare-github.sh:*)"
+      "Bash(./prepare-github.sh:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }
