@@ -1,4 +1,4 @@
-import { Camera, CameraResultType, CameraSource, Photo } from '@capacitor/camera';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { isMobile, hapticFeedback } from './capacitor';
 
@@ -51,8 +51,8 @@ export const cameraUtils = {
       
       return {
         base64Data: photo.base64String || '',
-        webPath: photo.webPath,
-        format: photo.format
+        webPath: photo.webPath || '',
+        format: photo.format || 'jpeg'
       };
       
     } catch (error) {
@@ -96,8 +96,8 @@ export const cameraUtils = {
       
       return {
         base64Data: photo.base64String || '',
-        webPath: photo.webPath,
-        format: photo.format
+        webPath: photo.webPath || '',
+        format: photo.format || 'jpeg'
       };
       
     } catch (error) {
