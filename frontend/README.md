@@ -1,69 +1,194 @@
-# React + TypeScript + Vite
+# ElderWise Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A comprehensive, elderly-friendly React TypeScript frontend for the ElderWise AI companion system.
 
-Currently, two official plugins are available:
+## 🌟 Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Core Features
+- **AI Chat Interface**: Real-time conversations with ElderWise AI companion
+- **Voice Support**: Speech recognition and synthesis for hands-free interaction
+- **Memory Lane**: Browse and search through conversation history
+- **Health Tracking**: Monitor health metrics and medication reminders
+- **Emergency Features**: Quick access to emergency contacts and services
+- **Settings**: Customizable preferences including text size and contrast
 
-## Expanding the ESLint configuration
+### Accessibility Features
+- **WCAG 2.1 AA Compliant**: Meets accessibility standards for elderly users
+- **Large Touch Targets**: Minimum 48px touch targets for easy interaction
+- **High Contrast Mode**: Enhanced visibility option
+- **Text Size Control**: Adjustable text sizes (small, medium, large, extra-large)
+- **Voice Control**: Voice commands for navigation
+- **Keyboard Navigation**: Full keyboard accessibility
+- **Screen Reader Support**: Comprehensive ARIA labels and live regions
+- **Reduced Motion**: Respects user preferences for reduced animations
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🚀 Getting Started
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+- Backend API running on http://localhost:8000
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+### Installation
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. Clone the repository:
+```bash
+git clone https://github.com/your-org/elderwise.git
+cd elderwise/frontend
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+2. Install dependencies:
+```bash
+npm install
 ```
+
+3. Copy environment variables:
+```bash
+cp .env.example .env
+```
+
+4. Configure your .env file:
+```env
+VITE_API_URL=http://localhost:8000
+VITE_APP_NAME=ElderWise
+VITE_APP_VERSION=1.0.0
+VITE_VOICE_ENABLED=true
+VITE_OFFLINE_ENABLED=true
+VITE_DEBUG_MODE=true
+```
+
+### Development
+
+Run the development server:
+```bash
+npm run dev
+```
+
+The app will be available at http://localhost:5173
+
+### Building for Production
+
+```bash
+npm run build
+```
+
+The production build will be in the `dist` directory.
+
+## 🧪 Testing
+
+### Run All Tests
+```bash
+npm test
+```
+
+### Run Accessibility Tests
+```bash
+npm run test:a11y
+```
+
+### Run Tests with Coverage
+```bash
+npm run test:coverage
+```
+
+## 📁 Project Structure
+
+```
+frontend/
+├── src/
+│   ├── components/        # Reusable UI components
+│   │   ├── common/       # Common components (Button, Card, etc.)
+│   │   ├── chat/         # Chat-specific components
+│   │   └── family/       # Family dashboard components
+│   ├── screens/          # Page-level components
+│   │   ├── auth/         # Authentication screens
+│   │   └── main/         # Main app screens
+│   ├── services/         # API and external services
+│   ├── store/            # Zustand state management
+│   ├── hooks/            # Custom React hooks
+│   ├── utils/            # Utility functions
+│   ├── types/            # TypeScript type definitions
+│   └── __tests__/        # Test files
+├── public/               # Static assets
+└── dist/                 # Production build output
+```
+
+## 🎨 Design System
+
+### Colors
+- **Lavender**: Primary brand color for calm and trust
+- **Sage**: Success and positive states
+- **Coral**: Alerts and emergency actions
+- **Cream**: Soft backgrounds for reduced eye strain
+
+### Typography
+- **Font**: Atkinson Hyperlegible for maximum readability
+- **Base Size**: 20px (larger than typical for elderly users)
+- **Scale**: 1.25 ratio for clear hierarchy
+
+### Components
+All components are designed with elderly users in mind:
+- Large, clear buttons with distinct states
+- High contrast text and backgrounds
+- Clear visual feedback for all interactions
+- Simplified navigation patterns
+
+## 🔧 Configuration
+
+### Text Size
+Users can adjust text size in Settings:
+- Small (16px base)
+- Medium (18px base)
+- Large (20px base) - Default
+- Extra Large (24px base)
+
+### Theme Options
+- Standard theme (default)
+- High contrast mode
+- Reduced motion (respects system preference)
+
+## 🚀 Deployment
+
+### Docker
+```dockerfile
+FROM node:18-alpine as builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 80
+```
+
+### Environment Variables
+Configure these for production:
+- `VITE_API_URL`: Backend API URL
+- `VITE_VOICE_ENABLED`: Enable/disable voice features
+- `VITE_OFFLINE_ENABLED`: Enable/disable offline mode
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+### Code Standards
+- Follow TypeScript best practices
+- Maintain accessibility standards
+- Write tests for new features
+- Update documentation as needed
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+For issues and feature requests, please use the GitHub issues tracker.
+
+For questions about ElderWise, contact support@elderwise.ai
