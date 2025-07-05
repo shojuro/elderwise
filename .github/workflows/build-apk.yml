@@ -10,14 +10,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
     
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
@@ -42,13 +45,13 @@ jobs:
         }
     
     - name: Set up JDK 11
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: '11'
         distribution: 'temurin'
     
     - name: Setup Android SDK
-      uses: android-actions/setup-android@v2
+      uses: android-actions/setup-android@v3
     
     - name: Initialize Android Project
       working-directory: ./frontend
@@ -112,64 +115,64 @@ jobs:
         fi
     
     - name: Upload APK
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: elderwise-debug-apk
         path: |
           frontend/android/app/build/outputs/apk/debug/app-debug.apk
           frontend/android/app/build/outputs/apk/debug/*.apk
         if-no-files-found: error
+        retention-days: 30
     
     - name: Create Release
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-      id: create_release
-      uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v1.0.${{ github.run_number }}
-        release_name: ElderWise Build ${{ github.run_number }}
-        body: |
-          Automated build of ElderWise APK
-          
-          ### 🎯 Features:
-          - 💊 Medication identification with camera
-          - 🧠 AI-powered memory assistant  
-          - ❤️ Health tracking
-          - 💬 Elder-friendly chat interface
-          - 📱 Progressive Web App support
-          
-          ### 📲 Installation Instructions:
-          1. Download the APK file below
-          2. On your Android device:
-             - Go to Settings → Security
-             - Enable "Unknown Sources" or "Install unknown apps"
-             - For newer Android: Settings → Apps → Special access → Install unknown apps
-          3. Open the downloaded APK file
-          4. Tap "Install"
-          5. Open ElderWise from your app drawer
-          
-          ### ⚠️ First Time Setup:
-          - Grant camera permissions for medication scanning
-          - Allow notifications for reminders
-          - Sign in or create an account
-          
-          ### 🔧 Troubleshooting:
-          - If installation is blocked, check your security settings
-          - If the app crashes, try clearing app data
-          - For camera issues, check app permissions
-          
-          **Note:** This is a debug build for testing. Not optimized for production use.
-        draft: false
-        prerelease: true
-    
-    - name: Upload Release APK
-      if: steps.create_release.outputs.upload_url
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
-        asset_name: ElderWise-v1.0.${{ github.run_number }}-debug.apk
-        asset_content_type: application/vnd.android.package-archive
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Find the APK file
+        APK_PATH=$(find frontend/android/app/build/outputs/apk/debug -name "*.apk" | head -1)
+        
+        if [ -z "$APK_PATH" ]; then
+          echo "No APK found!"
+          exit 1
+        fi
+        
+        # Create tag
+        TAG="v1.0.${{ github.run_number }}"
+        
+        # Create release using GitHub CLI
+        gh release create "$TAG" \
+          --title "ElderWise Build ${{ github.run_number }}" \
+          --notes "Automated build of ElderWise APK
+        
+        ### 🎯 Features:
+        - 💊 Medication identification with camera
+        - 🧠 AI-powered memory assistant  
+        - ❤️ Health tracking
+        - 💬 Elder-friendly chat interface
+        - 📱 Progressive Web App support
+        
+        ### 📲 Installation Instructions:
+        1. Download the APK file below
+        2. On your Android device:
+           - Go to Settings → Security
+           - Enable \"Unknown Sources\" or \"Install unknown apps\"
+           - For newer Android: Settings → Apps → Special access → Install unknown apps
+        3. Open the downloaded APK file
+        4. Tap \"Install\"
+        5. Open ElderWise from your app drawer
+        
+        ### ⚠️ First Time Setup:
+        - Grant camera permissions for medication scanning
+        - Allow notifications for reminders
+        - Sign in or create an account
+        
+        ### 🔧 Troubleshooting:
+        - If installation is blocked, check your security settings
+        - If the app crashes, try clearing app data
+        - For camera issues, check app permissions
+        
+        **Note:** This is a debug build for testing. Not optimized for production use." \
+          --prerelease \
+          "$APK_PATH#ElderWise-${TAG}-debug.apk"
