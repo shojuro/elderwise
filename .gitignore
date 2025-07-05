@@ -64,4 +64,4 @@ ehthumbs.db
 # Project specific
 data/
 temp/
-cache/
+cache/.idea/
