@@ -14,7 +14,25 @@
       "Bash(npm exec:*)",
       "Bash(npm run build:*)",
       "Bash(npm run dev:*)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(python:*)",
+      "Bash(./verify_services_basic.sh:*)",
+      "Bash(touch:*)",
+      "Bash(./generate-icons.sh:*)",
+      "Bash(./setup-mobile.sh:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(./build-simple.sh)",
+      "Bash(cp:*)",
+      "Bash(gradle:*)",
+      "Bash(java:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(git rm:*)",
+      "Bash(./build-apk.sh:*)",
+      "Bash(./create-pwa-package.sh:*)",
+      "Bash(./init-android.sh:*)",
+      "Bash(./prepare-github.sh:*)"
     ],
     "deny": []
   }
